@@ -24,8 +24,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 
-const Guests = ({ guests})=> {
-  console.log(guests);
+const Guests = ({ guests, destroyGuest })=> {
   return (
     <ul>
       {
@@ -33,6 +32,7 @@ const Guests = ({ guests})=> {
           return (
             <li key={ guest.id }>
               { guest.name }
+              <button onClick={()=> destroyGuest(guest)}>x</button>
             </li>
           );
         })
@@ -41,10 +41,70 @@ const Guests = ({ guests})=> {
   );
 };
 
+const CreateGuest = ({ createGuest })=> {
+  const [name, setName ] = React.useState('');
+  const [email, setEmail] = React.useState('');
+  const [phone, setPhone] = React.useState('');
+
+  const submit = (ev)=> {
+    ev.preventDefault();
+    createGuest({
+      name,
+      phone,
+      email
+    });
+
+  };
+
+  return (
+    <form onSubmit={ submit }>
+      <input
+        placeholder='name'
+        value={ name }
+        onChange={ (ev)=> setName(ev.target.value ) }
+      />
+      <input
+        placeholder='email'
+        value={ email }
+        onChange={ (ev)=> setEmail(ev.target.value ) }
+      />
+      <input
+        placeholder='phone'
+        value={ phone }
+        onChange={ (ev)=> setPhone(ev.target.value ) }
+      />
+      <button>Create</button>
+    </form>
+  );
+};
+
 function App() {
   const BASE_URL = 'https://fsa-crud-2aa9294fe819.herokuapp.com/api/2309_ftb_et_web_am/guests';
 
   const [guests, setGuests] = React.useState([]);
+ 
+  const destroyGuest = async(guest)=> {
+    await fetch(`${BASE_URL}/${guest.id}`, {
+      method: 'DELETE'
+    });
+    const id = guest.id;
+    const filtered = guests.filter((guest)=> {
+      return guest.id !== id;
+    });
+    setGuests(filtered);
+  };
+
+  const createGuest = async(guest)=> {
+    const response = await fetch(BASE_URL, {
+      method: 'POST',
+      body: JSON.stringify(guest),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    const json = await response.json();
+    setGuests([...guests, json.data]);
+  }
   
   React.useEffect(()=> {
     const fetchData = async()=> {
@@ -58,7 +118,8 @@ function App() {
   return (
     <div>
       <h1>The Acme Guests CRD { guests.length }</h1>
-      <Guests guests={ guests } />
+      <CreateGuest createGuest={ createGuest }/>
+      <Guests guests={ guests } destroyGuest={ destroyGuest }/>
     </div>
   );
 }
